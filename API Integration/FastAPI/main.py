@@ -66,25 +66,40 @@ async def demo(prompt):
         system_prompt = build_system_prompt(tool_block)
         # logging.info(system_prompt)
 
-        prompt = f"{system_prompt}\nProblem: {prompt}"
+        prompt = f"{system_prompt}\nUser Question: {prompt}"
 
         response = await generate_with_timeout(model, prompt)
         if response:
             logging.info("MODEL RAW OUTPUT:")
             logging.info(response.text)
+        else:
+            logging.error("No output from the model..")
+            raise
+        
+        if response.text.startswith("FUNCTION_CALL:"):
+            # execute function-calling
+            result = await call_tool_from_model_output(response.text, mcp)
+            logging.info(result)
+        else:
+            # if the answer is straight-forward
+            logging.info("FINAL ANSWER: ", response.text)
 
 
 if __name__ == "__main__":
     # Example 1: 
     prompt = "Create a new product called Hucco ice-cream which costs $100 under Diary Category"
-    asyncio.run(demo(prompt))
+    asyncio.run(demo(prompt))  
 
     # Example 2: 
+    # prompt = "Show me the details of the product with ID 2"
+    # asyncio.run(demo(prompt))  
+
+    # Example 3: testing the FASTAPI endpoint function calling (v1 commit)
     # model_output = "FUNCTION_CALL: create_product_products_post|name=Hucco ice-cream|price=100|category=Diary|description=null"
     # result = asyncio.run(call_tool_from_model_output(model_output, mcp))
     # print(result)
 
-    # Example 3: 
+    # Example 4: testing the mcp tool function calling (v1 commit)
     # model_output = "FUNCTION_CALL: obtain_product_from_db|product_id=1"
     # result = asyncio.run(call_tool_from_model_output(model_output, mcp))
     # print(result)
